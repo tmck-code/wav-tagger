@@ -16,11 +16,11 @@ def parse_metadata(fpath):
             .overwrite_output()
             .run()
     )
-    data = open(FF_META).read().strip().split("\n")
-    os.remove(FF_META)
+    data = open(FF_META, 'rb').read().decode(errors='replace').strip().split("\n")
+    # os.remove(FF_META)
     print(data)
     return dict([
-        tuple(l.split("=")) for l in data[3:]
+        tuple(l.split("=", 1)) for l in data[3:]
     ])
 
 def write_metadata(fpath: str, metadata: dict, ofpath: str):

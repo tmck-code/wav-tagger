@@ -27,5 +27,5 @@ setuptools.setup(
             'wav_tagger = wav_tagger:run',
         ],
     },
-    install_requires=['ffmpeg-python']
+    install_requires=['ffmpeg-python', 'requests']
 )
