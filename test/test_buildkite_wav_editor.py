@@ -1,12 +1,12 @@
-import beatport_wav_editor
+from wav_tagger import tag, beatport_wav_editor
 
 def test_gen_args():
-    result = beatport_wav_editor._gen_metadata_args({
+    result = tag.WAVMetadata(**{
         'title': 'My Title',
         'artist': 'Me',
         'album': 'X',
         'year': '2019'
-    })
+    })._gen_metadata_args()
     expected = {
         'metadata:g:0': 'title=My Title',
         'metadata:g:1': 'artist=Me',

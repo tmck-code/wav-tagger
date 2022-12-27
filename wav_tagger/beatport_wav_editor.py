@@ -8,38 +8,6 @@ import requests
 
 FF_META = "out.txt"
 
-def parse_metadata(fpath):
-    (
-        ffmpeg
-            .input(fpath)
-            .output(FF_META, format="ffmetadata", loglevel="quiet")
-            .overwrite_output()
-            .run()
-    )
-    data = open(FF_META, 'rb').read().decode(errors='replace').strip().split("\n")
-    # os.remove(FF_META)
-    print(data)
-    return dict([
-        tuple(l.split("=", 1)) for l in data[3:]
-    ])
-
-def write_metadata(fpath: str, metadata: dict, ofpath: str):
-    with open(FF_META, "w") as ostream:
-        ostream.write(";FFMETADATA1\n")
-        ostream.write("\n".join("=".join([k,v]) for k,v in metadata.items()))
-    (
-        ffmpeg
-            .input(fpath)
-            .output(ofpath, codec="copy", map_metadata="1", loglevel="quiet")
-            .global_args("-i", FF_META)
-            .overwrite_output()
-            .run()
-    )
-    os.remove(FF_META)
-
-def _gen_metadata_args(metadata: dict) -> dict:
-    return {f"metadata:g:{i}": f"{k}={v}" for i,(k,v) in zip(count(), metadata.items())}
-
 def format_artist_names(artists: list):
     return " & ".join([", ".join(artists[0:-1]), artists[-1]]).lstrip(" & ")
 
