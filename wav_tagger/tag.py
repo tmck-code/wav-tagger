@@ -11,14 +11,15 @@ Metadata = namedtuple('metadata', ['key', 'value'])
 FF_META = "out.txt"
 
 @dataclass
-class LISTMetadata:
-    title: str
-    artist: str
-    album: str
-    year: str
+class WAVMetadata:
+    title: str = ''
+    artist: str = ''
+    album: str = ''
+    track: int = 0
+    genre: str = ''
 
     def _gen_metadata_args(self) -> dict:
-        return {f"metadata:g:{i}": f"{k}={v}" for i,(k,v) in zip(count(), self.__dict__.items())}
+        return {f"metadata:g:{i}": f"{k}={v}" for i,(k,v) in zip(count(), self.__dict__.items()) if v}
 
 def parse_wav_metadata(wav_fpath: str):
     (
