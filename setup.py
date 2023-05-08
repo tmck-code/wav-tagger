@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-'The Punsy pip package'
+'The wav-tagger pip package'
 
 import setuptools
 
