@@ -39,7 +39,6 @@ def run(dirpath: str, metadata_fpath: str):
             'title': track['title'],
             'album': metadata['album'],
             'genre': track['genre'],
-            'track': str(int(track['track'])),
             'ITRK': str(int(track['track'])),
         }
         ppd(metadata)
