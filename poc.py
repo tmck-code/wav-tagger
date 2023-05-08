@@ -47,6 +47,22 @@ def run(dirpath: str, metadata_fpath: str):
         input('correct?')
         tag.write_wav_metadata(fpath=fpath, metadata=metadata)
 
+def run_beatport():
+    ifdir = sys.argv[1]
+
+    paths = []
+    for fpath in glob.glob(f"{ifdir}/*.wav"):
+        print(fpath, end="", flush=True)
+        md = grab_track_info(fpath.lstrip("./"))
+        print(f" : {md}")
+        paths.append((fpath, md))
+
+    input("does this look right?")
+
+    for fpath, md in paths:
+        os.makedirs(f"./{md['artist']}/{md['album']}", exist_ok=True)
+        write_metadata(fpath, md, f"./{md['artist']}/{md['album']}/{os.path.basename(fpath)}")
+
 if __name__ == '__main__':
     run(dirpath=sys.argv[1], metadata_fpath=sys.argv[2])
 
