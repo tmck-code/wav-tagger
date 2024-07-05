@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
 from collections import namedtuple
 from itertools import count
@@ -17,9 +17,32 @@ class WAVMetadata:
     album: str = ''
     track: int = 0
     genre: str = ''
+    metadata_fpath: str = 'metadata.txt'
+    tmp_fpath: str = 'tmp.wav'
 
     def _gen_metadata_args(self) -> dict:
         return {f"metadata:g:{i}": f"{k}={v}" for i,(k,v) in zip(count(), self.__dict__.items()) if v}
+    
+    def _write_metadata_file(self):
+        with open(self.metadata_fpath, "w") as ostream:
+            ostream.write(";FFMETADATA1\n")
+            ostream.write("\n".join("=".join([k,v]) for k,v in asdict(self).items()))
+
+    def _write(self, fpath: str, ofpath: str):
+        (
+            ffmpeg
+                .input(fpath)
+                .output(ofpath, codec="copy", map_metadata="1", loglevel="quiet")
+                .global_args("-i", self.metadata_fpath)
+                .overwrite_output()
+                .run()
+        )
+
+    def write_to_file(self, fpath: str):
+        self._write_metadata_file()
+        self._write(fpath, self.tmp_fpath)
+        os.rename(self.tmp_fpath, fpath)
+        os.remove(self.metadata_fpath)
 
 def parse_wav_metadata(wav_fpath: str):
     (
@@ -35,10 +58,10 @@ def parse_wav_metadata(wav_fpath: str):
         tuple(l.split("=", 1)) for l in data[3:]
     ])
 
-def write_metadata_file(metadata: dict, fpath: str = FF_META):
+def write_metadata_file(metadata: WAVMetadata, fpath: str = FF_META):
     with open(fpath, "w") as ostream:
         ostream.write(";FFMETADATA1\n")
-        ostream.write("\n".join("=".join([k,v]) for k,v in metadata.items()))
+        ostream.write("\n".join("=".join([k,v]) for k,v in asdict(metadata).items()))
 
 def write_metadata(metadata_fpath: str, fpath: str, ofpath: str):
     (
