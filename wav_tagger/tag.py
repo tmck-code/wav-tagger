@@ -26,7 +26,13 @@ class WAVMetadata:
     def _write_metadata_file(self):
         with open(self.metadata_fpath, "w") as ostream:
             ostream.write(";FFMETADATA1\n")
-            ostream.write("\n".join("=".join([k,v]) for k,v in asdict(self).items()))
+            keys = ["title", "artist", "album", "track", "genre"]
+            for k in keys:
+                v = getattr(self, k)
+                if v:
+                    print(f"{k}={v}", file=ostream)
+            if self.track:
+                print(f'trkn={self.track}', file=ostream)
 
     def _write(self, fpath: str, ofpath: str):
         (
