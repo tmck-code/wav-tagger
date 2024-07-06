@@ -32,7 +32,7 @@ class WAVMetadata:
                 if v:
                     print(f"{k}={v}", file=ostream)
             if self.track:
-                print(f'trkn={self.track}', file=ostream)
+                print(f'ITRK={self.track}', file=ostream)
 
     def _write(self, fpath: str, ofpath: str):
         (
