@@ -16,6 +16,24 @@ def ppd(d, indent=None, style='material'):
     'pretty-prints a dictionary, used for simple logs'
     print(highlight(json.dumps(d, indent=indent), lexers.JsonLexer(), formatters.TerminalTrueColorFormatter(style=styles.get_style_by_name(style))).strip())
 
+def slugify_fpath(name: str):
+    return name.replace('/', ' - ').replace(':', '_')
+
+@dataclass
+class UserDefinedTag:
+    fpath: str
+    metadata: tag.WAVMetadata
+
+    def __post_init__(self):
+        self.odirpath = os.path.join(slugify_fpath(self.metadata.artist), slugify_fpath(self.metadata.album))
+
+    def run(self):
+        os.makedirs(self.odirpath, exist_ok=True)
+        ofpath = os.path.join(self.odirpath, slugify_fpath(os.path.basename(self.fpath)))
+        os.rename(self.fpath, ofpath)
+
+        ppd(self.metadata.__dict__ | {'fpath': self.fpath, 'ofpath': ofpath})
+        self.metadata.write_to_file(ofpath)
 
 @dataclass
 class BandcampTag:
@@ -56,15 +74,19 @@ class BandcampTag:
                 metadata.write_to_file(fpath)
 
 
-def run(fpath: str, store: str, genre: str):
+def run(fpath: str, store: str, genre: str, metadata: dict = None):
     ppd({'fpath': fpath, 'store': store, 'genre': genre})
-    if store == 'bandcamp':
+
+    if metadata:
+        UserDefinedTag(fpath, tag.WAVMetadata(**metadata)).run()
+    elif store == 'bandcamp':
         BandcampTag(fpath, genre).run()
 
 
 def parse_args():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-fpath', type=str, required=True)
+    argparser.add_argument('-metadata', type=json.loads, required=False)
     argparser.add_argument('-store', type=str, choices=['bandcamp'])
     argparser.add_argument('-genre', type=str)
 
