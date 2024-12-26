@@ -51,6 +51,13 @@ class BandcampTag:
             os.makedirs(self.dirpath, exist_ok=True)
             os.rename(self.fpath, os.path.join(self.dirpath, os.path.basename(self.fpath)))
 
+    def ordered_fname(album, artist, track, title, ext='wav'):
+        '''
+        original: Icicle, SP-MC - 20 Years Of Shogun Audio - 13 Dreadnaught (Break Remix).wav
+        ordered:  20 Years Of Shogun Audio - 13 - Icicle, SP-MC - Dreadnaught (Break Remix).wav
+        '''
+        return ' - '.join([album, track, artist, title]) + '.wav'
+
     def run(self):
         for root, _, fnames in os.walk(self.dirpath):
             for fname in fnames:
@@ -69,7 +76,10 @@ class BandcampTag:
                     title  = title,
                     genre  = self.genre,
                 )
-                fpath = os.path.join(root, fname)
+                orig_fpath = os.path.join(root, fname)
+                fpath = os.path.join(root, BandcampTag.ordered_fname(album=album, artist=artist, track=track, title=title))
+                os.rename(orig_fpath, fpath)
+
                 ppd(metadata.__dict__ | {'fpath': fpath})
                 metadata.write_to_file(fpath)
 
