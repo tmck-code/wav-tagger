@@ -65,7 +65,7 @@ class BandcampTag:
                 metadata = tag.WAVMetadata(
                     album  = album,
                     artist = artist,
-                    track  = track,
+                    track  = int(track),
                     title  = title,
                     genre  = self.genre,
                 )
