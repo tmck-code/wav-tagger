@@ -9,9 +9,6 @@ from wav_tagger import bandcamp, tag
 
 from pygments import lexers, formatters, styles, highlight
 
-SERVER_LIST_URL = 'https://surfheaven.eu/servers'
-
-
 def ppd(d, indent=None, style='material'):
     'pretty-prints a dictionary, used for simple logs'
     print(highlight(json.dumps(d, indent=indent), lexers.JsonLexer(), formatters.TerminalTrueColorFormatter(style=styles.get_style_by_name(style))).strip())
@@ -22,7 +19,7 @@ def slugify_fpath(name: str):
 @dataclass
 class UserDefinedTag:
     fpath: str
-    metadata: tag.WAVMetadata
+    metadata: tag.WavMetadata
 
     def __post_init__(self):
         self.odirpath = os.path.join(slugify_fpath(self.metadata.artist), slugify_fpath(self.metadata.album))
@@ -69,7 +66,7 @@ class BandcampTag:
                     title = album
                 else:
                     album, artist, track, title = bandcamp.parse_track_metadata_from_fname(fname)
-                metadata = tag.WAVMetadata(
+                metadata = tag.WavMetadata(
                     album  = album,
                     artist = artist,
                     track  = int(track),
@@ -88,7 +85,7 @@ def run(fpath: str, store: str, genre: str, metadata: dict = None):
     ppd({'fpath': fpath, 'store': store, 'genre': genre})
 
     if metadata:
-        UserDefinedTag(fpath, tag.WAVMetadata(**metadata)).run()
+        UserDefinedTag(fpath, tag.WavMetadata(**metadata)).run()
     elif store == 'bandcamp':
         BandcampTag(fpath, genre).run()
 

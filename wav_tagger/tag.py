@@ -1,88 +1,70 @@
-from dataclasses import dataclass, asdict
-from typing import List
 from collections import namedtuple
-from itertools import count
+from dataclasses import dataclass, asdict, field
+import operator as op
+from typing import List
+from typing import NamedTuple
 import os
+import random
 
 import ffmpeg
 
-Metadata = namedtuple('metadata', ['key', 'value'])
-
-FF_META = "out.txt"
+class WavMetadata(NamedTuple):
+    title:  str
+    artist: str
+    album:  str
+    track:  int
+    genre:  str
 
 @dataclass
-class WAVMetadata:
-    title: str = ''
-    artist: str = ''
-    album: str = ''
-    track: int = 0
-    genre: str = ''
-    metadata_fpath: str = 'metadata.txt'
-    tmp_fpath: str = 'tmp.wav'
+class MetadataWriter:
+    tmp_wav_fpath: str = field(init=False)
+    tmp_metadata_fpath: str = field(init=False)
 
-    def _gen_metadata_args(self) -> dict:
-        return {f"metadata:g:{i}": f"{k}={v}" for i,(k,v) in zip(count(), self.__dict__.items()) if v}
-    
-    def _write_metadata_file(self):
-        with open(self.metadata_fpath, "w") as ostream:
-            ostream.write(";FFMETADATA1\n")
-            keys = ["title", "artist", "album", "track", "genre"]
-            for k in keys:
-                v = getattr(self, k)
-                if v:
-                    print(f"{k}={v}", file=ostream)
-            if self.track:
-                print(f'ITRK={self.track}', file=ostream)
+    def __post_init__(self):
+        random_id = int(random.random()*(10**6))
+        self.tmp_wav_fpath      = f'tmp_{random_id}.wav'
+        self.tmp_metadata_fpath = f'tmp_{random_id}.txt'
 
-    def _write(self, fpath: str, ofpath: str):
+    def write_to_wav(self, metadata: WavMetadata, wav_fpath: str):
+        '''
+        This function writes metadata to a wav file using ffmpeg.
+        - Uses ffmpeg to create a new wav file with the metadata.
+        - Tidies up by removing the temporary files.
+        '''
+        self._write_metadata_file(metadata)
         (
             ffmpeg
-                .input(fpath)
-                .output(ofpath, codec="copy", map_metadata="1", loglevel="quiet")
-                .global_args("-i", self.metadata_fpath)
+                .input(wav_fpath)
+                .output(self.tmp_wav_fpath, codec="copy", map_metadata="1", loglevel="quiet")
+                .global_args("-i", self.tmp_metadata_fpath)
                 .overwrite_output()
                 .run()
         )
+        os.remove(self.tmp_metadata_fpath)
+        os.rename(self.tmp_wav_fpath, wav_fpath)
 
-    def write_to_file(self, fpath: str):
-        self._write_metadata_file()
-        self._write(fpath, self.tmp_fpath)
-        os.rename(self.tmp_fpath, fpath)
-        os.remove(self.metadata_fpath)
+    def read_from_wav(self, wav_fpath: str) -> WavMetadata:
+        'Reads all metadata fields from a wav file, and returns a WavMetadata object with the main ones.'
+        return WavMetadata(*op.itemgetter(*WavMetadata._fields)(self._read_all_wav_metadata(wav_fpath)))
 
-def parse_wav_metadata(wav_fpath: str):
-    (
-        ffmpeg
-            .input(wav_fpath)
-            .output(FF_META, format="ffmetadata", loglevel="quiet")
-            .overwrite_output()
-            .run()
-    )
-    data = open(FF_META, 'rb').read().decode(errors='replace').strip().split("\n")
-    print(data)
-    return dict([
-        tuple(l.split("=", 1)) for l in data[3:]
-    ])
+    def _read_all_wav_metadata(self, wav_fpath: str) -> dict:
+        (
+            ffmpeg
+                .input(wav_fpath)
+                .output(self.tmp_metadata_fpath, format="ffmetadata", loglevel="quiet")
+                .overwrite_output()
+                .run()
+        )
+        # read the file, strip each line, and split each line by '=' to get key-value pairs
+        return dict(map(
+            op.methodcaller('split', '='),
+            open(self.tmp_metadata_fpath, 'rb').read().decode(errors='replace').strip().split("\n")[1:]
+        ))
 
-def write_metadata_file(metadata: WAVMetadata, fpath: str = FF_META):
-    with open(fpath, "w") as ostream:
-        ostream.write(";FFMETADATA1\n")
-        ostream.write("\n".join("=".join([k,v]) for k,v in asdict(metadata).items()))
-
-def write_metadata(metadata_fpath: str, fpath: str, ofpath: str):
-    (
-        ffmpeg
-            .input(fpath)
-            .output(ofpath, codec="copy", map_metadata="1", loglevel="quiet")
-            .global_args("-i", metadata_fpath)
-            .overwrite_output()
-            .run()
-    )
-
-def write_wav_metadata(fpath: str, metadata: dict):
-    tmp_fpath = 'tmp.wav'
-    write_metadata_file(metadata, FF_META)
-    write_metadata(FF_META, fpath, tmp_fpath)
-    os.rename(tmp_fpath, fpath)
-    os.remove(FF_META)
-
+    def _write_metadata_file(self, metadata: WavMetadata):
+        with open(self.tmp_metadata_fpath, 'w') as ostream:
+            print(';FFMETADATA1', file=ostream)
+            for k, v in metadata._asdict().items():
+                print(f'{k}={v}', file=ostream)
+                if k == 'track':
+                    print(f'ITRK={v}', file=ostream)
